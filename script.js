@@ -262,11 +262,6 @@ class CountdownTimer {
         const cityTimezone = document.getElementById('cityTimezone');
         const abbrTimezone = document.getElementById('abbrTimezone');
         
-        console.log('Setting timezone values to:', value);
-        console.log('UTC offset element:', utcOffset);
-        console.log('City timezone element:', cityTimezone);
-        console.log('Abbr timezone element:', abbrTimezone);
-        
         if (!utcOffset || !cityTimezone || !abbrTimezone) {
             console.error('Timezone elements not found in setTimezoneValues!');
             return;
