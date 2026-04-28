@@ -1,0 +1,26 @@
+[
+  {
+    "filename": "background.jpg",
+    "type": "image"
+  },
+  {
+    "filename": "background.png", 
+    "type": "image"
+  },
+  {
+    "filename": "background.gif",
+    "type": "image"
+  },
+  {
+    "filename": "background.webp",
+    "type": "image"
+  },
+  {
+    "filename": "background.mp4",
+    "type": "video"
+  },
+  {
+    "filename": "background.webm",
+    "type": "video"
+  }
+]

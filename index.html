@@ -403,9 +403,108 @@
             scrollbar-width: thin;
             scrollbar-color: rgba(75, 85, 99, 0.6) rgba(31, 41, 55, 0.3);
         }
+        
+        /* Background Media Styles */
+        .background-media-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            overflow: hidden;
+        }
+        
+        .background-media {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -3;
+        }
+        
+        .background-media.hidden {
+            display: none !important;
+        }
+        
+        #backgroundVideo:not(.hidden) {
+            display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            z-index: -3 !important;
+        }
+        
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
+        }
+        
+        #mainContainer {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Theme-specific overlay colors for 80% opacity effect */
+        .theme-gradient .background-overlay {
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.8) 0%, 
+                rgba(118, 75, 162, 0.8) 100%);
+        }
+        
+        .theme-shadcn .background-overlay {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .theme-minimal .background-overlay {
+            background: rgba(31, 41, 55, 0.8);
+        }
+        
+        /* Hide background media when no background is set */
+        .no-background .background-media-container,
+        .no-background .background-overlay {
+            display: none;
+        }
+        
+        /* Make overlay transparent so video can shine through theme background */
+        .background-overlay {
+            background: transparent !important;
+        }
+        
+        /* Make main container backgrounds semi-transparent when background media is active */
+        .theme-gradient:not(.no-background) {
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.8) 0%, 
+                rgba(118, 75, 162, 0.8) 100%) !important;
+        }
+        
+        .theme-shadcn:not(.no-background) {
+            background: rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        .theme-minimal:not(.no-background) {
+            background: rgba(31, 41, 55, 0.8) !important;
+        }
     </style>
 </head>
 <body>
+    <!-- Background Media Container -->
+    <div id="backgroundMediaContainer" class="background-media-container">
+        <img id="backgroundImage" class="background-media hidden" alt="Background">
+        <video id="backgroundVideo" class="background-media hidden" loop muted autoplay></video>
+    </div>
+    <div id="backgroundOverlay" class="background-overlay"></div>
+    
     <div id="mainContainer" class="theme-gradient">
         <!-- Sidebar Toggle Button -->
         <button id="sidebarToggle" class="sidebar-toggle fixed top-6 left-6 z-50 bg-white/20 backdrop-blur-md text-white p-3 rounded-full shadow-lg hover:bg-white/30 transition-opacity duration-300">
@@ -558,6 +657,82 @@
                         </div>
                     </div>
                     
+                    <!-- Background Media Settings -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-image mr-2"></i>Background Media
+                        </label>
+                        
+                        <!-- Media Type Selection -->
+                        <div class="mb-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="mediaType" value="none" checked class="mr-2">
+                                <span>No Background</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="mediaType" value="url" class="mr-2">
+                                <span>Use URL</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="mediaType" value="local" class="mr-2">
+                                <span>Local Media</span>
+                            </label>
+                        </div>
+                        
+                        <!-- URL Section -->
+                        <div id="urlSection" class="hidden space-y-2">
+                            <div>
+                                <label for="mediaUrl" class="text-xs text-gray-600 mb-1 block">Media URL (Image or Video)</label>
+                                <input 
+                                    type="url" 
+                                    id="mediaUrl" 
+                                    name="mediaUrl"
+                                    placeholder="https://example.com/image.jpg"
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                >
+                            </div>
+                            <div id="urlInfo" class="text-xs text-gray-500 hidden">
+                                <!-- URL info will be displayed here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Local Media Section -->
+                        <div id="localSection" class="hidden space-y-2">
+                            <div>
+                                <label for="localMedia" class="text-xs text-gray-600 mb-1 block">Select from Media Folder</label>
+                                <select 
+                                    id="localMedia" 
+                                    name="localMedia"
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                >
+                                    <option value="">Select media file...</option>
+                                </select>
+                            </div>
+                            <div id="localInfo" class="text-xs text-gray-500 hidden">
+                                <!-- Local media info will be displayed here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Current Media Display -->
+                        <div id="currentMediaDisplay" class="hidden mt-3 p-3 bg-gray-100 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <div class="text-sm">
+                                    <div class="font-medium text-gray-700">Current Background:</div>
+                                    <div id="currentMediaInfo" class="text-gray-600 text-xs mt-1">
+                                        <!-- Current media info -->
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    id="removeMedia"
+                                    class="text-red-500 hover:text-red-700 text-sm"
+                                >
+                                    <i class="fas fa-trash mr-1"></i>Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                        
                     <!-- Apply Button -->
                     <button type="submit" class="btn-primary w-full py-3 px-4 text-white font-semibold rounded-lg shadow-lg">
                         <i class="fas fa-check mr-2"></i>Apply Changes

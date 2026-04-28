@@ -121,7 +121,12 @@ class CountdownTimer {
             date: '2025-01-01',
             time: '00:00',
             timezone: this.detectUserTimezone(),
-            theme: 'gradient'
+            theme: 'gradient',
+            backgroundMedia: {
+                type: 'none', // 'none', 'image', 'video'
+                source: 'none', // 'url', 'local'
+                url: null
+            }
         };
         
         this.init();
@@ -137,6 +142,7 @@ class CountdownTimer {
             this.updateTheme();
             this.setupEventListeners();
             this.updateDisplay();
+            this.updateBackgroundMedia();
             this.startCountdown();
         }, 100);
     }
@@ -207,6 +213,9 @@ class CountdownTimer {
         
         // Then set current timezone values
         this.setTimezoneValues(this.settings.timezone);
+        
+        // Populate background media settings
+        this.populateBackgroundMediaForm();
     }
     
     populateTimezoneSelectors() {
@@ -590,6 +599,9 @@ class CountdownTimer {
                 this.syncTimezoneSelectors('abbrTimezone', e.target.value);
             }
         });
+        
+        // Setup background media listeners
+        this.setupBackgroundMediaListeners();
     }
     
     formatTimezone() {
@@ -687,12 +699,24 @@ class CountdownTimer {
             'minimal': 'Minimalistic Dark'
         };
         
+        // Format background media info
+        let backgroundMediaInfo = 'None';
+        const media = this.settings.backgroundMedia;
+        if (media.type && media.type !== 'none') {
+            if (media.source === 'local') {
+                backgroundMediaInfo = `Local ${media.type}`;
+            } else if (media.source === 'url') {
+                backgroundMediaInfo = `URL ${media.type}`;
+            }
+        }
+        
         display.innerHTML = `
             <div><strong>Title:</strong> ${this.settings.title}</div>
             <div><strong>Date:</strong> ${formattedDate}</div>
             <div><strong>Time:</strong> ${this.settings.time}</div>
             <div><strong>Timezone:</strong> ${this.formatTimezone()}</div>
             <div><strong>Theme:</strong> ${themeNames[this.settings.theme]}</div>
+            <div><strong>Background:</strong> ${backgroundMediaInfo}</div>
         `;
     }
     
@@ -831,6 +855,362 @@ class CountdownTimer {
             }
         `;
         document.head.appendChild(style);
+    }
+    
+    // Background Media Methods
+    setupBackgroundMediaListeners() {
+        // Media type radio buttons
+        const mediaTypeRadios = document.querySelectorAll('input[name="mediaType"]');
+        mediaTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.handleMediaTypeChange(radio.value);
+            });
+        });
+        
+        // URL input
+        const mediaUrlInput = document.getElementById('mediaUrl');
+        mediaUrlInput.addEventListener('input', (e) => {
+            this.handleUrlInput(e.target.value);
+        });
+        
+        // Local media dropdown
+        const localMediaSelect = document.getElementById('localMedia');
+        localMediaSelect.addEventListener('change', (e) => {
+            this.handleLocalMediaChange(e.target.value);
+        });
+        
+        // Remove media button
+        const removeMediaBtn = document.getElementById('removeMedia');
+        removeMediaBtn.addEventListener('click', () => {
+            this.removeBackgroundMedia();
+        });
+        
+        // Load local media files
+        this.loadLocalMediaFiles();
+    }
+    
+    handleMediaTypeChange(type) {
+        const urlSection = document.getElementById('urlSection');
+        const localSection = document.getElementById('localSection');
+        
+        // Hide all sections first
+        urlSection.classList.add('hidden');
+        localSection.classList.add('hidden');
+        
+        // Show relevant section
+        if (type === 'url') {
+            urlSection.classList.remove('hidden');
+        } else if (type === 'local') {
+            localSection.classList.remove('hidden');
+        }
+        
+        // Update settings
+        this.settings.backgroundMedia.source = type;
+        if (type === 'none') {
+            this.removeBackgroundMedia();
+        }
+    }
+    
+    handleUrlInput(url) {
+        if (!url.trim()) return;
+        
+        // Detect file type from URL extension
+        const fileType = this.detectFileTypeFromUrl(url);
+        
+        if (fileType) {
+            this.settings.backgroundMedia = {
+                type: fileType,
+                source: 'url',
+                url: url.trim()
+            };
+            
+            // Update UI
+            this.updateUrlInfo(url, fileType);
+            this.updateBackgroundMedia();
+            this.updateCurrentMediaDisplay();
+            this.saveSettings();
+        } else {
+            // Invalid URL or unsupported format
+            document.getElementById('urlInfo').innerHTML = 
+                '<span class="text-red-500">Unsupported format or invalid URL</span>';
+            document.getElementById('urlInfo').classList.remove('hidden');
+        }
+    }
+    
+    detectFileTypeFromUrl(url) {
+        // Try to determine type from URL extension
+        const extension = url.split('.').pop().toLowerCase();
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+        const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
+        
+        if (imageExtensions.includes(extension)) {
+            return 'image';
+        } else if (videoExtensions.includes(extension)) {
+            return 'video';
+        }
+        
+        return null;
+    }
+    
+    updateUrlInfo(url, fileType) {
+        const urlInfo = document.getElementById('urlInfo');
+        urlInfo.innerHTML = `
+            <span class="text-green-600">
+                <i class="fas fa-${fileType === 'image' ? 'image' : 'video'} mr-1"></i>
+                ${url} - ${fileType}
+            </span>
+        `;
+        urlInfo.classList.remove('hidden');
+    }
+    
+    async loadLocalMediaFiles() {
+        const localMediaSelect = document.getElementById('localMedia');
+        localMediaSelect.innerHTML = '<option value="">Loading media files...</option>';
+        
+        try {
+            // Try to load the real file list from JSON
+            const response = await fetch('media-files.json');
+            if (response.ok) {
+                const mediaFiles = await response.json();
+                
+                localMediaSelect.innerHTML = '<option value="">Select media file...</option>';
+                
+                if (mediaFiles.length === 0) {
+                    localMediaSelect.innerHTML = '<option value="">No media files found</option>';
+                    return;
+                }
+                
+                mediaFiles.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = `media/${file.filename}`;
+                    option.textContent = `${file.filename} (${file.type})`;
+                    option.dataset.type = file.type;
+                    localMediaSelect.appendChild(option);
+                });
+                
+                console.log('Loaded', mediaFiles.length, 'media files from JSON');
+            } else {
+                throw new Error('Could not load media files list');
+            }
+        } catch (error) {
+            console.log('Could not load media-files.json, using fallback');
+            // Fallback to common files if JSON doesn't exist
+            const fallbackFiles = [
+                { filename: 'background.jpg', type: 'image' },
+                { filename: 'background.png', type: 'image' },
+                { filename: 'background.gif', type: 'image' },
+                { filename: 'background.webp', type: 'image' },
+                { filename: 'background.mp4', type: 'video' },
+                { filename: 'background.webm', type: 'video' }
+            ];
+            
+            localMediaSelect.innerHTML = '<option value="">Select media file...</option>';
+            
+            fallbackFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = `media/${file.filename}`;
+                option.textContent = `${file.filename} (${file.type})`;
+                option.dataset.type = file.type;
+                localMediaSelect.appendChild(option);
+            });
+        }
+    }
+    
+    handleLocalMediaChange(url) {
+        if (!url) return;
+        
+        const localMediaSelect = document.getElementById('localMedia');
+        const selectedOption = localMediaSelect.options[localMediaSelect.selectedIndex];
+        const fileType = selectedOption.dataset.type;
+        
+        this.settings.backgroundMedia = {
+            type: fileType,
+            source: 'local',
+            url: url
+        };
+        
+        // Update UI
+        this.updateLocalMediaInfo(selectedOption.textContent, fileType);
+        this.updateBackgroundMedia();
+        this.updateCurrentMediaDisplay();
+        this.saveSettings();
+    }
+    
+    updateLocalMediaInfo(filename, fileType) {
+        const localInfo = document.getElementById('localInfo');
+        localInfo.innerHTML = `
+            <span class="text-green-600">
+                <i class="fas fa-${fileType === 'image' ? 'image' : 'video'} mr-1"></i>
+                ${filename}
+            </span>
+        `;
+        localInfo.classList.remove('hidden');
+    }
+    
+    updateBackgroundMedia() {
+        const container = document.getElementById('mainContainer');
+        const imageElement = document.getElementById('backgroundImage');
+        const videoElement = document.getElementById('backgroundVideo');
+        const mediaContainer = document.getElementById('backgroundMediaContainer');
+        const overlay = document.getElementById('backgroundOverlay');
+        
+        console.log('Updating background media:', this.settings.backgroundMedia);
+        
+        // Hide all media first
+        imageElement.classList.add('hidden');
+        videoElement.classList.add('hidden');
+        mediaContainer.classList.add('hidden');
+        overlay.classList.add('hidden');
+        
+        // Remove no-background class
+        container.classList.remove('no-background');
+        
+        const media = this.settings.backgroundMedia;
+        
+        if (media.type === 'none' || !media.url) {
+            container.classList.add('no-background');
+            console.log('No background media set');
+            return;
+        }
+        
+        // Show background media container and overlay
+        mediaContainer.classList.remove('hidden');
+        overlay.classList.remove('hidden');
+        
+        if (media.type === 'image') {
+            console.log('Setting up image background');
+            const imageUrl = media.source === 'local' ? media.url : media.url;
+            imageElement.src = imageUrl;
+            console.log('Image src set to:', imageUrl);
+            imageElement.classList.remove('hidden');
+        } else if (media.type === 'video') {
+            console.log('Setting up video background');
+            
+            // Reset video element
+            videoElement.pause();
+            videoElement.currentTime = 0;
+            
+            const videoUrl = media.source === 'local' ? media.url : media.url;
+            videoElement.src = videoUrl;
+            console.log('Video src set to:', videoUrl);
+            
+            // Add event listeners for debugging
+            videoElement.addEventListener('loadstart', () => console.log('Video load start'));
+            videoElement.addEventListener('loadeddata', () => console.log('Video data loaded'));
+            videoElement.addEventListener('canplay', () => console.log('Video can play'));
+            videoElement.addEventListener('error', (e) => console.log('Video error:', e));
+            
+            // Show video element
+            videoElement.classList.remove('hidden');
+            videoElement.style.display = 'block';
+            
+            // Load and play video
+            videoElement.load();
+            
+            // Try to play after a short delay
+            setTimeout(() => {
+                videoElement.play().catch(e => console.log('Video autoplay failed:', e));
+            }, 500);
+        }
+        
+        console.log('Background media updated successfully');
+        
+        // Debug: Check element visibility immediately
+        console.log('Container classes:', container.className);
+        console.log('Media container classes:', mediaContainer.className);
+        console.log('Overlay classes:', overlay.className);
+        console.log('Container has no-background:', container.classList.contains('no-background'));
+        console.log('Media container hidden:', mediaContainer.classList.contains('hidden'));
+        console.log('Overlay hidden:', overlay.classList.contains('hidden'));
+        
+        // Debug: Check video element state after a delay
+        setTimeout(() => {
+            if (media.type === 'video') {
+                console.log('Video element debug info:');
+                console.log('Video element:', videoElement);
+                console.log('Video src:', videoElement.src);
+                console.log('Video classes:', videoElement.className);
+                console.log('Video hidden?:', videoElement.classList.contains('hidden'));
+                console.log('Video readyState:', videoElement.readyState);
+                console.log('Video paused:', videoElement.paused);
+                console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                console.log('Video error:', videoElement.error);
+                console.log('Video computed style display:', getComputedStyle(videoElement).display);
+                console.log('Video computed style z-index:', getComputedStyle(videoElement).zIndex);
+                console.log('Container computed style z-index:', getComputedStyle(container).zIndex);
+                console.log('Overlay computed style z-index:', getComputedStyle(overlay).zIndex);
+            }
+        }, 2000);
+    }
+    
+    updateCurrentMediaDisplay() {
+        const display = document.getElementById('currentMediaDisplay');
+        const info = document.getElementById('currentMediaInfo');
+        const media = this.settings.backgroundMedia;
+        
+        if (media.type === 'none' || !media.url) {
+            display.classList.add('hidden');
+            return;
+        }
+        
+        display.classList.remove('hidden');
+        
+        let mediaInfo = '';
+        if (media.source === 'local') {
+            mediaInfo = `Local ${media.type}`;
+        } else if (media.source === 'url') {
+            mediaInfo = `URL: ${media.url.substring(0, 30)}${media.url.length > 30 ? '...' : ''}`;
+        }
+        
+        info.innerHTML = `
+            <i class="fas fa-${media.type === 'image' ? 'image' : 'video'} mr-1"></i>
+            ${mediaInfo}
+        `;
+    }
+    
+    removeBackgroundMedia() {
+        this.settings.backgroundMedia = {
+            type: 'none',
+            source: 'none',
+            url: null
+        };
+        
+        // Reset form
+        document.querySelector('input[name="mediaType"][value="none"]').checked = true;
+        document.getElementById('mediaUrl').value = '';
+        document.getElementById('localMedia').value = '';
+        document.getElementById('urlInfo').classList.add('hidden');
+        document.getElementById('localInfo').classList.add('hidden');
+        document.getElementById('urlSection').classList.add('hidden');
+        document.getElementById('localSection').classList.add('hidden');
+        
+        // Update display
+        this.updateBackgroundMedia();
+        this.updateCurrentMediaDisplay();
+        this.saveSettings();
+    }
+    
+    populateBackgroundMediaForm() {
+        const media = this.settings.backgroundMedia;
+        
+        // Set media type radio
+        const mediaTypeRadio = document.querySelector(`input[name="mediaType"][value="${media.source || 'none'}"]`);
+        if (mediaTypeRadio) {
+            mediaTypeRadio.checked = true;
+        }
+        
+        // Handle initial media type change to show/hide sections
+        this.handleMediaTypeChange(media.source || 'none');
+        
+        // Set URL if it exists
+        if (media.source === 'url' && media.url) {
+            document.getElementById('mediaUrl').value = media.url;
+        } else if (media.source === 'local' && media.url) {
+            document.getElementById('localMedia').value = media.url;
+        }
+        
+        // Update current media display
+        this.updateCurrentMediaDisplay();
     }
 }
 
