@@ -783,6 +783,8 @@ class CountdownTimer {
                     transform: rotate(${Math.random() * 360}deg);
                     animation: fall ${2 + Math.random() * 2}s linear;
                     z-index: 1000;
+                    pointer-events: none;
+                    box-sizing: border-box;
                 `;
                 document.body.appendChild(confetti);
                 
@@ -795,7 +797,7 @@ class CountdownTimer {
         style.textContent = `
             @keyframes fall {
                 to {
-                    transform: translateY(100vh) rotate(${Math.random() * 720}deg);
+                    transform: translateY(${window.innerHeight - 20}px) rotate(${Math.random() * 720}deg);
                     opacity: 0;
                 }
             }
