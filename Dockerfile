@@ -5,7 +5,7 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy website files to Nginx html directory
-COPY index.html script.js /usr/share/nginx/html/
+COPY . /usr/share/nginx/html/
 
 # Create custom Nginx config for better performance
 RUN echo 'server {' > /etc/nginx/conf.d/default.conf && \

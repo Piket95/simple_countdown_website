@@ -1,0 +1,6 @@
+Dockerfile
+.git
+.gitignore
+LICENSE
+README.md
+*.example
