@@ -101,3 +101,7 @@ npx serve .
 ## License
 
 MIT License - feel free to use this project for personal or commercial purposes.
+
+
+## IDEAS
+- maybe i can add predefined countdown settings which are accessable via the path like /birthday or /anniversary and /custom (settings disabled) is this where you can make a custom one

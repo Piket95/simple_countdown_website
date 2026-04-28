@@ -133,11 +133,8 @@ class CountdownTimer {
     }
     
     init() {
-        console.log('Initializing countdown timer...');
-        
         // Add a small delay to ensure DOM is fully ready
         setTimeout(() => {
-            console.log('DOM ready, elements available:', document.getElementById('cityTimezone'));
             this.loadSettings();
             this.updateTheme();
             this.setupEventListeners();
@@ -149,22 +146,17 @@ class CountdownTimer {
     
     loadSettings() {
         const saved = localStorage.getItem('countdownSettings');
-        console.log('Loading settings from localStorage:', saved);
         if (saved) {
             const parsedSettings = JSON.parse(saved);
-            console.log('Parsed settings:', parsedSettings);
             
             // Validate and fix timezone if it's invalid
             if (parsedSettings.timezone && !this.timezoneData[parsedSettings.timezone]) {
-                console.log('Invalid timezone found:', parsedSettings.timezone);
                 // Convert old "UTC" format to "UTC+0"
                 if (parsedSettings.timezone === 'UTC') {
                     parsedSettings.timezone = 'UTC+0';
-                    console.log('Fixed UTC to UTC+0');
                 } else {
                     // If it's some other invalid format, detect user timezone
                     parsedSettings.timezone = this.detectUserTimezone();
-                    console.log('Replaced invalid timezone with detected:', parsedSettings.timezone);
                 }
                 // Save the corrected settings
                 localStorage.setItem('countdownSettings', JSON.stringify(parsedSettings));
@@ -174,23 +166,14 @@ class CountdownTimer {
             if (parsedSettings.timezoneStyle) {
                 delete parsedSettings.timezoneStyle;
                 localStorage.setItem('countdownSettings', JSON.stringify(parsedSettings));
-                console.log('Removed old timezoneStyle property');
             }
             
             this.settings = { ...this.settings, ...parsedSettings };
-            console.log('Final merged settings:', this.settings);
-            console.log('Merged settings timezone:', this.settings.timezone);
-            console.log('Merged settings date:', this.settings.date);
-            console.log('Merged settings time:', this.settings.time);
             this.populateForm();
         } else {
-            console.log('No saved settings found, using defaults');
-            console.log('Default settings:', this.settings);
             this.populateForm();
         }
-        console.log('About to call updateTargetDate...');
         this.updateTargetDate();
-        console.log('updateTargetDate completed');
         this.updateCurrentSettingsDisplay();
     }
     
@@ -467,33 +450,24 @@ class CountdownTimer {
     }
     
     updateTargetDate() {
-        const dateTimeString = `${this.settings.date}T${this.settings.time}:00`;
-        console.log('Original date/time string:', dateTimeString);
-        
         // Parse the date/time as if it's in the specified timezone
         const [year, month, day] = this.settings.date.split('-').map(Number);
         const [hours, minutes] = this.settings.time.split(':').map(Number);
         
         // Convert to the target timezone offset
         const offset = this.parseUTCOffset(this.settings.timezone);
-        console.log('Parsed UTC offset:', offset, 'from timezone:', this.settings.timezone);
         
         if (offset !== null) {
             // Create the date as if it's in the specified timezone
             // First, create it as UTC, then adjust backwards by the timezone offset
             const utcHours = hours - offset; // Subtract the offset to get UTC time
-            console.log('UTC hours should be:', utcHours);
             
             // Create UTC date with adjusted hours
             this.targetDate = new Date(Date.UTC(year, month - 1, day, utcHours, minutes, 0));
-            console.log('Final target date (in local timezone):', this.targetDate);
         } else {
             // Fallback to local time if no timezone specified
             this.targetDate = new Date(year, month - 1, day, hours, minutes, 0);
         }
-        
-        console.log('Current time:', new Date());
-        console.log('Time difference (ms):', this.targetDate - new Date());
     }
     
     parseUTCOffset(utcString) {
@@ -507,15 +481,11 @@ class CountdownTimer {
             const userOffset = -(new Date().getTimezoneOffset() / 60);
             const utcString = `UTC${userOffset >= 0 ? '+' : ''}${userOffset}`;
             
-            console.log('Detected user offset:', userOffset, 'UTC string:', utcString);
-            
             // Check if this UTC offset exists in our data
             if (this.timezoneData && this.timezoneData[utcString]) {
-                console.log('Found in timezone data:', utcString);
                 return utcString;
             }
             
-            console.log('UTC offset not found in data, defaulting to UTC+0');
             // Fallback to UTC+0 if not found
             return 'UTC+0';
         } catch (error) {
@@ -620,20 +590,12 @@ class CountdownTimer {
         this.settings.time = document.getElementById('time').value;
         this.settings.timezone = document.getElementById('utcOffset').value;
         
-        console.log('Updating settings:');
-        console.log('Title:', this.settings.title);
-        console.log('Date:', this.settings.date);
-        console.log('Time:', this.settings.time);
-        console.log('Timezone:', this.settings.timezone);
-        
         const themeRadios = document.querySelectorAll('input[name="theme"]');
         themeRadios.forEach(radio => {
             if (radio.checked) {
                 this.settings.theme = radio.value;
             }
         });
-        
-        console.log('Theme:', this.settings.theme);
         
         // Reset completed state if it was showing
         this.resetCompletedState();
@@ -643,8 +605,6 @@ class CountdownTimer {
         this.updateDisplay();
         this.updateCurrentSettingsDisplay();
         this.saveSettings();
-        
-        console.log('Settings updated, restarting countdown...');
         
         // Restart countdown with new settings
         this.startCountdown();
@@ -734,21 +694,13 @@ class CountdownTimer {
     
     calculateCountdown() {
         if (!this.targetDate) {
-            console.log('No target date set!');
             return;
         }
         
         const now = new Date();
         const difference = this.targetDate - now;
         
-        console.log('Calculating countdown...');
-        console.log('Target date:', this.targetDate);
-        console.log('Current time:', now);
-        console.log('Time difference (ms):', difference);
-        console.log('Time difference (hours):', difference / (1000 * 60 * 60));
-        
         if (difference <= 0) {
-            console.log('Countdown completed or expired!');
             this.showCompleted();
             clearInterval(this.intervalId);
             return;
@@ -759,7 +711,6 @@ class CountdownTimer {
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((difference % (1000 * 60)) / 1000);
         
-        console.log('Countdown values:', { days, hours, minutes, seconds });
         this.updateCountdownDisplay(days, hours, minutes, seconds);
     }
     
@@ -988,8 +939,7 @@ class CountdownTimer {
                     localMediaSelect.appendChild(option);
                 });
                 
-                console.log('Loaded', mediaFiles.length, 'media files from JSON');
-            } else {
+                            } else {
                 throw new Error('Could not load media files list');
             }
         } catch (error) {
@@ -1054,8 +1004,6 @@ class CountdownTimer {
         const mediaContainer = document.getElementById('backgroundMediaContainer');
         const overlay = document.getElementById('backgroundOverlay');
         
-        console.log('Updating background media:', this.settings.backgroundMedia);
-        
         // Hide all media first
         imageElement.classList.add('hidden');
         videoElement.classList.add('hidden');
@@ -1069,7 +1017,6 @@ class CountdownTimer {
         
         if (media.type === 'none' || !media.url) {
             container.classList.add('no-background');
-            console.log('No background media set');
             return;
         }
         
@@ -1078,27 +1025,16 @@ class CountdownTimer {
         overlay.classList.remove('hidden');
         
         if (media.type === 'image') {
-            console.log('Setting up image background');
             const imageUrl = media.source === 'local' ? media.url : media.url;
             imageElement.src = imageUrl;
-            console.log('Image src set to:', imageUrl);
             imageElement.classList.remove('hidden');
         } else if (media.type === 'video') {
-            console.log('Setting up video background');
-            
             // Reset video element
             videoElement.pause();
             videoElement.currentTime = 0;
             
             const videoUrl = media.source === 'local' ? media.url : media.url;
             videoElement.src = videoUrl;
-            console.log('Video src set to:', videoUrl);
-            
-            // Add event listeners for debugging
-            videoElement.addEventListener('loadstart', () => console.log('Video load start'));
-            videoElement.addEventListener('loadeddata', () => console.log('Video data loaded'));
-            videoElement.addEventListener('canplay', () => console.log('Video can play'));
-            videoElement.addEventListener('error', (e) => console.log('Video error:', e));
             
             // Show video element
             videoElement.classList.remove('hidden');
@@ -1112,35 +1048,6 @@ class CountdownTimer {
                 videoElement.play().catch(e => console.log('Video autoplay failed:', e));
             }, 500);
         }
-        
-        console.log('Background media updated successfully');
-        
-        // Debug: Check element visibility immediately
-        console.log('Container classes:', container.className);
-        console.log('Media container classes:', mediaContainer.className);
-        console.log('Overlay classes:', overlay.className);
-        console.log('Container has no-background:', container.classList.contains('no-background'));
-        console.log('Media container hidden:', mediaContainer.classList.contains('hidden'));
-        console.log('Overlay hidden:', overlay.classList.contains('hidden'));
-        
-        // Debug: Check video element state after a delay
-        setTimeout(() => {
-            if (media.type === 'video') {
-                console.log('Video element debug info:');
-                console.log('Video element:', videoElement);
-                console.log('Video src:', videoElement.src);
-                console.log('Video classes:', videoElement.className);
-                console.log('Video hidden?:', videoElement.classList.contains('hidden'));
-                console.log('Video readyState:', videoElement.readyState);
-                console.log('Video paused:', videoElement.paused);
-                console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                console.log('Video error:', videoElement.error);
-                console.log('Video computed style display:', getComputedStyle(videoElement).display);
-                console.log('Video computed style z-index:', getComputedStyle(videoElement).zIndex);
-                console.log('Container computed style z-index:', getComputedStyle(container).zIndex);
-                console.log('Overlay computed style z-index:', getComputedStyle(overlay).zIndex);
-            }
-        }, 2000);
     }
     
     updateCurrentMediaDisplay() {
@@ -1216,7 +1123,6 @@ class CountdownTimer {
 
 // Initialize the countdown timer when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded, creating timer...');
     new CountdownTimer();
 });
 
